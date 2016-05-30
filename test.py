@@ -14,15 +14,25 @@ from defs import *
 ########################################################
 
 def test_sift():
+	print("SIFT: predict - actual")
 	clf = joblib.load("classifiers/classifier_sift.pkl")
 	centers = np.load("feature_data/SIFT/centers.npy")
 	detector = cv2.FeatureDetector_create("SIFT")
 	extractor = cv2.DescriptorExtractor_create("SIFT")
 
-	for filename in glob.glob(os.path.join("test_images", "wp", "*.jpg")):
-		image = cv2.imread(filename)
-		features = preprocessing.generateBOWFeatures(image, centers, detector, extractor)
-		print clf.predict(features)
+	for piece_dir in pieces:
+		num_correct = float(0)
+		num_images = 0
+		for filename in glob.glob(os.path.join("test_images", piece_dir, "*.jpg")):
+			num_images = num_images + 1
+			image = cv2.imread(filename)
+			features = preprocessing.generateBOWFeatures(image, centers, detector, extractor)
+			prediction = clf.predict(features)
+			if prediction[0] == piece_classes[piece_dir]:
+				num_correct = num_correct + 1
+			print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+		if num_images > 0:
+			print("Accuracy for " + piece_dir + ": " + str(num_correct/num_images))
 
 ########################################################
 ####    											####
@@ -31,15 +41,25 @@ def test_sift():
 ########################################################
 
 def test_dsift():
+	print("DSIFT: predict - actual")
 	clf = joblib.load("classifiers/classifier_dsift.pkl")
 	centers = np.load("feature_data/DSIFT/centers.npy")
 	detector = cv2.FeatureDetector_create("Dense")
 	extractor = cv2.DescriptorExtractor_create("SIFT")
 
-	for filename in glob.glob(os.path.join("test_images", "wp", "*.jpg")):
-		image = cv2.imread(filename)
-		features = preprocessing.generateBOWFeatures(image, centers, detector, extractor)
-		print clf.predict(features)
+	for piece_dir in pieces:
+		num_correct = float(0)
+		num_images = 0
+		for filename in glob.glob(os.path.join("test_images", piece_dir, "*.jpg")):
+			num_images = num_images + 1
+			image = cv2.imread(filename)
+			features = preprocessing.generateBOWFeatures(image, centers, detector, extractor)
+			prediction = clf.predict(features)
+			if prediction[0] == piece_classes[piece_dir]:
+				num_correct = num_correct + 1
+			print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+		if num_images > 0:
+			print("Accuracy for " + piece_dir + ": " + str(num_correct/num_images))
 
 ########################################################
 ####    											####
@@ -48,6 +68,7 @@ def test_dsift():
 ########################################################
 
 def test_hog():
+	print("HOG: predict - actual")
 
 	# Aspect ratio 1:1 - pawns, rooks
 	clf = joblib.load("classifiers/classifier_hog_1.pkl")
@@ -55,14 +76,37 @@ def test_hog():
 	hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
 		histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
 
-	for filename in glob.glob(os.path.join("test_images", "wp", "*.jpg")):
-		image = cv2.imread(filename)
-		image = cv2.resize(image, winSize)
-		features = hog.compute(image)
-		print clf.predict(features.transpose())
+	for piece_dir in pieces_aspect_ratio_1:
+		num_correct = float(0)
+		num_images = 0
+		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
+			num_images = num_images + 1
+			image = cv2.imread(filename)
+			image = cv2.resize(image, winSize)
+			features = hog.compute(image)
+			prediction = clf.predict(features.transpose())
+			if prediction[0] == piece_classes[piece_dir]:
+				num_correct = num_correct + 1
+			# print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+		if num_images > 0:
+			print("Train accuracy for " + piece_dir + ": " + str(num_correct/num_images))
+
+		num_correct = float(0)
+		num_images = 0
+		for filename in glob.glob(os.path.join("test_images", piece_dir, "*.jpg")):
+			num_images = num_images + 1
+			image = cv2.imread(filename)
+			image = cv2.resize(image, winSize)
+			features = hog.compute(image)
+			prediction = clf.predict(features.transpose())
+			if prediction[0] == piece_classes[piece_dir]:
+				num_correct = num_correct + 1
+			print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+		if num_images > 0:
+			print("Test accuracy for " + piece_dir + ": " + str(num_correct/num_images))
 
 
 if __name__ == "__main__":
-	test_sift()
-	test_dsift()
+	# test_sift()
+	# test_dsift()
 	test_hog()

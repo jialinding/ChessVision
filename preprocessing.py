@@ -8,8 +8,8 @@ from defs import *
 
 def generateClusterCenters(n_clusters, detector, extractor):
 	features = None
-	for piece_dir in ["emtpy", "wp"]:
-		for filename in glob.glob(os.path.join("raw_piece_images", piece_dir, "*.jpg")):
+	for piece_dir in pieces:
+		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
 			image = cv2.imread(filename)
 			gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 			kp = detector.detect(gray)
@@ -63,7 +63,7 @@ def preprocessing_sift():
 	centers = generateClusterCenters(n_clusters, sift_detector, sift_extractor)
 	np.save("feature_data/SIFT/centers", centers)
 
-	for piece_dir in ["empty", "wp"]:
+	for piece_dir in pieces:
 		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
 			image = cv2.imread(filename)
 			features = generateBOWFeatures(image, centers, sift_detector, sift_extractor)
@@ -86,7 +86,7 @@ def preprocessing_dsift():
 	centers = generateClusterCenters(n_clusters, dsift_detector, dsift_extractor)
 	np.save("feature_data/DSIFT/centers", centers)
 
-	for piece_dir in ["empty", "wp"]:
+	for piece_dir in pieces:
 		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
 			image = cv2.imread(filename)
 			features = generateBOWFeatures(image, centers, dsift_detector, dsift_extractor)
@@ -109,7 +109,7 @@ def preprocessing_hog():
 	hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
 		histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
 
-	for piece_dir in ["empty", "wp"]:
+	for piece_dir in pieces_aspect_ratio_1:
 		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
 			image = cv2.imread(filename)
 			image = cv2.resize(image, winSize)
@@ -119,6 +119,6 @@ def preprocessing_hog():
 
 
 if __name__ == "__main__":
-	# preprocessing_sift()
-	# preprocessing_dsift()
+	preprocessing_sift()
+	preprocessing_dsift()
 	preprocessing_hog()

@@ -147,6 +147,7 @@ class Board:
 	########################################################
 
 	def detectPieces(self, descriptor):
+		self.board = np.zeros( (8, 8) )
 		for r in xrange(8):
 			for f in xrange(8):
 				possible_bb = self.getPossibleBoundingBoxes(r, f)

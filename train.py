@@ -5,17 +5,14 @@ from sklearn import svm
 from sklearn.externals import joblib
 import cv2
 import preprocessing
+from defs import *
 
 
 def load_data(desc):
 	X = None
 	Y = None
-	piece_class = 0
-	for piece_dir in ["empty", "wp"]:
-		if piece_dir == "empty":
-			piece_class = 0
-		elif piece_dir == "wp":
-			piece_class = 1
+	for piece_dir in pieces:
+		piece_class = piece_classes[piece_dir]
 
 		for filename in glob.glob(os.path.join("feature_data", desc, piece_dir, "*.npy")):
 			data = np.load(filename)
@@ -50,7 +47,7 @@ def train_sift():
 
 def train_dsift():
 	X, Y = load_data("DSIFT")
-	clf = svm.SVC()
+	clf = svm.SVC(class_weight=piece_weights)
 	clf.fit(X, Y)
 	joblib.dump(clf, "classifiers/classifier_dsift.pkl")
 
@@ -66,21 +63,17 @@ def train_hog():
 
 	for ratio in aspect_ratios:
 		X, Y = load_data_hog(ratio)
-		clf = svm.SVC()
+		clf = svm.SVC(class_weight=piece_weights)
 		clf.fit(X, Y)
 		joblib.dump(clf, "classifiers/classifier_hog_" + ratio + ".pkl")
 
 def load_data_hog(ratio):
-	ratio_to_piece = {"1": ["empty", "wp"]}
+	ratio_to_piece = {"1": pieces_aspect_ratio_1}
 
 	X = None
 	Y = None
-	piece_class = 0
 	for piece_dir in ratio_to_piece[ratio]:
-		if piece_dir == "empty":
-			piece_class = 0
-		elif piece_dir == "wp":
-			piece_class = 1
+		piece_class = piece_classes[piece_dir]
 
 		for filename in glob.glob(os.path.join("feature_data", "HOG", ratio,
 			piece_dir, "*.npy")):
