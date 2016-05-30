@@ -1,0 +1,10 @@
+blockSize = (16,16)
+blockStride = (8,8)
+cellSize = (8,8)
+nbins = 9
+derivAperture = 1
+winSigma = 4.
+histogramNormType = 0
+L2HysThreshold = 2.0000000000000001e-01
+gammaCorrection = 0
+nlevels = 64
