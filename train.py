@@ -8,13 +8,18 @@ import preprocessing
 from defs import *
 
 
-def load_data(desc):
+def load_data(desc, piece):
 	X = None
 	Y = None
-	for piece_dir in pieces:
-		piece_class = piece_classes[piece_dir]
+	ratio = piece_to_ratio[piece]
 
-		for filename in glob.glob(os.path.join("feature_data", desc, piece_dir, "*.npy")):
+	for piece_dir in pieces:
+		piece_class = 0
+		if piece == piece_dir:
+			piece_class = 1
+
+		for filename in glob.glob(os.path.join("feature_data", desc, str(ratio),
+			piece_dir, "*.npy")):
 			data = np.load(filename)
 			if X is None:
 				X = np.array(data)
@@ -32,11 +37,11 @@ def load_data(desc):
 ########################################################
 
 def train_sift():
-	X, Y = load_data("SIFT")
-	weights = {0: 10, 1: 2}
-	clf = svm.SVC(class_weight=weights)
-	clf.fit(X, Y)
-	joblib.dump(clf, "classifiers/classifier_sift.pkl")
+	for piece in pieces:
+		X, Y = load_data("SIFT", piece)
+		clf = svm.SVC(class_weight={0: 1, 1: 2})
+		clf.fit(X, Y)
+		joblib.dump(clf, "classifiers/classifier_sift" + piece + ".pkl")
 
 
 ########################################################
@@ -46,10 +51,11 @@ def train_sift():
 ########################################################
 
 def train_dsift():
-	X, Y = load_data("DSIFT")
-	clf = svm.SVC(class_weight=piece_weights)
-	clf.fit(X, Y)
-	joblib.dump(clf, "classifiers/classifier_dsift.pkl")
+	for piece in pieces:
+		X, Y = load_data("DSIFT", piece)
+		clf = svm.SVC(class_weight={0: 1, 1: 2})
+		clf.fit(X, Y)
+		joblib.dump(clf, "classifiers/classifier_dsift" + piece + ".pkl")
 
 
 ########################################################
@@ -59,23 +65,23 @@ def train_dsift():
 ########################################################
 
 def train_hog():
-	aspect_ratios = ["1"]
-
-	for ratio in aspect_ratios:
-		X, Y = load_data_hog(ratio)
-		clf = svm.SVC(class_weight=piece_weights)
+	for piece in pieces:
+		X, Y = load_data_hog(piece)
+		clf = svm.SVC(class_weight=piece_weights, probability=True)
 		clf.fit(X, Y)
-		joblib.dump(clf, "classifiers/classifier_hog_" + ratio + ".pkl")
+		joblib.dump(clf, "classifiers/classifier_hog_" + piece + ".pkl")
 
-def load_data_hog(ratio):
-	ratio_to_piece = {"1": pieces_aspect_ratio_1}
-
+def load_data_hog(piece):
 	X = None
 	Y = None
-	for piece_dir in ratio_to_piece[ratio]:
-		piece_class = piece_classes[piece_dir]
 
-		for filename in glob.glob(os.path.join("feature_data", "HOG", ratio,
+	ratio = piece_to_ratio[piece]
+	for piece_dir in pieces:
+		piece_class = 0
+		if piece == piece_dir:
+			piece_class = 1
+
+		for filename in glob.glob(os.path.join("feature_data", "HOG", str(ratio),
 			piece_dir, "*.npy")):
 			data = np.load(filename)
 			if X is None:
@@ -85,6 +91,20 @@ def load_data_hog(ratio):
 				X = np.vstack( (X, data.transpose()) )
 				Y = np.hstack( (Y, [piece_class]) )
 	return (X, Y)
+
+
+########################################################
+####    											####
+####       Neural Network							####
+####												####
+########################################################
+
+def train_nn():
+	for piece in pieces:
+		X, Y = load_data_hog(piece)
+		clf = svm.SVC()
+		clf.fit(X, Y)
+		joblib.dump(clf, "classifiers/classifier_nn_" + piece + ".pkl")
 
 
 if __name__ == "__main__":

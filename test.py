@@ -68,43 +68,81 @@ def test_dsift():
 ########################################################
 
 def test_hog():
-	print("HOG: predict - actual")
+	print("HOG:")
 
-	# Aspect ratio 1:1 - pawns, rooks
-	clf = joblib.load("classifiers/classifier_hog_1.pkl")
-	winSize = (64, 64)
-	hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
-		histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+	for piece in pieces:
+		clf = joblib.load("classifiers/classifier_hog_" + piece + ".pkl")
+		ratio = piece_to_ratio[piece]
+		winSize = (64, int(64*ratio))
+		hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,
+			winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
 
-	for piece_dir in pieces_aspect_ratio_1:
+		print(piece)
+
+		# Training set
 		num_correct = float(0)
 		num_images = 0
-		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
-			num_images = num_images + 1
-			image = cv2.imread(filename)
-			image = cv2.resize(image, winSize)
-			features = hog.compute(image)
-			prediction = clf.predict(features.transpose())
-			if prediction[0] == piece_classes[piece_dir]:
-				num_correct = num_correct + 1
-			# print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+		num_true_pos = 0
+		num_true_neg = 0
+		for piece_dir in pieces:
+			num_correct_in_piece = 0
+			for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
+				num_images = num_images + 1
+				image = cv2.imread(filename)
+				image = cv2.resize(image, (64, 128))
+				image = image[int(128-64*ratio):,:]
+				features = hog.compute(image)
+				prediction = clf.predict(features.transpose())
+				if piece == piece_dir and prediction[0] == 1:
+					num_true_pos = num_true_pos + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				elif piece != piece_dir and prediction[0] == 0:
+					num_true_neg = num_true_neg + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				# print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+			print(num_correct_in_piece)
 		if num_images > 0:
-			print("Train accuracy for " + piece_dir + ": " + str(num_correct/num_images))
+			print(str(num_true_pos), str(num_true_neg))
+			print(str(num_correct), str(num_images))
+			print("Train accuracy: " + str(num_correct/num_images))
 
+		# Test set
 		num_correct = float(0)
 		num_images = 0
-		for filename in glob.glob(os.path.join("test_images", piece_dir, "*.jpg")):
-			num_images = num_images + 1
-			image = cv2.imread(filename)
-			image = cv2.resize(image, winSize)
-			features = hog.compute(image)
-			prediction = clf.predict(features.transpose())
-			if prediction[0] == piece_classes[piece_dir]:
-				num_correct = num_correct + 1
-			print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+		num_true_pos = 0
+		num_true_neg = 0
+		for piece_dir in pieces:
+			num_correct_in_piece = 0
+			for filename in glob.glob(os.path.join("test_images", piece_dir, "*.jpg")):
+				num_images = num_images + 1
+				image = cv2.imread(filename)
+				image = cv2.resize(image, (64, 128))
+				image = image[int(128-64*ratio):,:]
+				features = hog.compute(image)
+				prediction = clf.predict(features.transpose())
+				if piece == piece_dir and prediction[0] == 1:
+					num_true_pos = num_true_pos + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				elif piece != piece_dir and prediction[0] == 0:
+					num_true_neg = num_true_neg + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				# print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+			print(num_correct_in_piece)
 		if num_images > 0:
-			print("Test accuracy for " + piece_dir + ": " + str(num_correct/num_images))
+			print(str(num_true_pos), str(num_true_neg))
+			print(str(num_correct), str(num_images))
+			print("Test accuracy: " + str(num_correct/num_images))
 
+
+def test_hog_on_training_set(hog):
+	return
+
+def test_hog_on_test_set():
+	return
 
 if __name__ == "__main__":
 	# test_sift()

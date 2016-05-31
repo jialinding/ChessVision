@@ -56,6 +56,7 @@ def generateBOWFeatures(image, centers, detector, extractor):
 # normalize training examples per class
 
 def preprocessing_sift():
+	print("Processing SIFT")
 	sift_detector = cv2.FeatureDetector_create("SIFT")
 	sift_extractor = cv2.DescriptorExtractor_create("SIFT")
 
@@ -66,8 +67,12 @@ def preprocessing_sift():
 	for piece_dir in pieces:
 		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
 			image = cv2.imread(filename)
-			features = generateBOWFeatures(image, centers, sift_detector, sift_extractor)
-			np.save("feature_data/SIFT/" + piece_dir + "/" + os.path.basename(filename), features)
+			image = cv2.resize(image, (64, 128))
+			for ratio in aspect_ratios:
+				subimage = image[int(128-64*ratio):,:]
+				features = generateBOWFeatures(subimage, centers, sift_detector, sift_extractor)
+				np.save("feature_data/SIFT/" + str(ratio) + "/" + piece_dir + "/" + \
+					os.path.basename(filename), features)
 
 
 ########################################################
@@ -79,6 +84,7 @@ def preprocessing_sift():
 # add pyramid depth
 
 def preprocessing_dsift():
+	print("Processing DSIFT")
 	dsift_detector = cv2.FeatureDetector_create("Dense")
 	dsift_extractor = cv2.DescriptorExtractor_create("SIFT")
 
@@ -89,8 +95,12 @@ def preprocessing_dsift():
 	for piece_dir in pieces:
 		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
 			image = cv2.imread(filename)
-			features = generateBOWFeatures(image, centers, dsift_detector, dsift_extractor)
-			np.save("feature_data/DSIFT/" + piece_dir + "/" + os.path.basename(filename), features)
+			image = cv2.resize(image, (64, 128))
+			for ratio in aspect_ratios:
+				subimage = image[int(128-64*ratio):,:]
+				features = generateBOWFeatures(subimage, centers, dsift_detector, dsift_extractor)
+				np.save("feature_data/DSIFT/" + str(ratio) + "/" + piece_dir + "/" + \
+					os.path.basename(filename), features)
 
 
 ########################################################
@@ -103,22 +113,22 @@ def preprocessing_dsift():
 # Adjust HOG parameters
 
 def preprocessing_hog():
-
-	# Aspect ratio 1:1 - pawns, rooks
-	winSize = (64, 64)
-	hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
-		histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
-
-	for piece_dir in pieces_aspect_ratio_1:
-		for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
-			image = cv2.imread(filename)
-			image = cv2.resize(image, winSize)
-			features = hog.compute(image)
-			np.save("feature_data/HOG/1/" + piece_dir + "/" + os.path.basename(filename),
-				features)
+	print("Processing HOG")
+	for ratio in aspect_ratios:
+		winSize = (64, int(64*ratio))
+		hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,
+			winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+		for piece_dir in pieces:
+			for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
+				image = cv2.imread(filename)
+				image = cv2.resize(image, (64, 128))
+				subimage = image[int(128-64*ratio):,:]
+				features = hog.compute(subimage)
+				np.save("feature_data/HOG/" + str(ratio) + "/" + piece_dir + "/" + \
+					os.path.basename(filename), features)
 
 
 if __name__ == "__main__":
-	preprocessing_sift()
-	preprocessing_dsift()
+	# preprocessing_sift()
+	# preprocessing_dsift()
 	preprocessing_hog()

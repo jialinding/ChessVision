@@ -1,5 +1,11 @@
-pieces = ["empty", "wp", "wr", "bp", "br"]
-pieces_aspect_ratio_1 = ["empty", "wp", "wr", "bp", "br"]
+pieces = ["empty", "wp"] # change weights
+piece_weights = {0: 1, 1: 1}
+
+aspect_ratios = [1, 1.5, 2]
+
+piece_to_ratio = {"empty": 1,
+				  "wp": 1,
+				  "bp": 1}
 
 piece_classes = {"empty": 0,
 				 "wp": 1,
@@ -14,12 +20,6 @@ piece_classes = {"empty": 0,
 				 "bb": 10,
 				 "bq": 11,
 				 "bk": 12}
-
-piece_weights = {0: 10,
-				 1: 5.5,
-				 2: 6,
-				 7: 6,
-				 8: 7}
 
 # HOG
 blockSize = (16,16)
