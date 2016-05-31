@@ -31,11 +31,7 @@ class Board:
 		self.homography_inv = None
 		self.transformedBoard = None
 
-		# Classification
-		self.classifier_sift = joblib.load("classifiers/classifier_sift.pkl")
-		self.classifier_dsift = joblib.load("classifiers/classifier_dsift.pkl")
-		self.classifier_hog_1 = joblib.load("classifiers/classifier_hog_1.pkl")
-		
+		# Classification		
 		self.centers_sift = np.load("feature_data/SIFT/centers.npy")
 		self.centers_dsift = np.load("feature_data/DSIFT/centers.npy")
 
@@ -230,7 +226,7 @@ class Board:
 	def detectPiecesHOG(self):
 		self.board = np.zeros( (8, 8) )
 
-		probabilities = np.zeros( (13, 8, 8) )
+		probabilities = np.zeros( (7, 8, 8) )
 		for piece in pieces:
 			piece_class = piece_classes[piece]
 			ratio = piece_to_ratio[piece]
@@ -253,7 +249,7 @@ class Board:
 
 		print(probabilities[0,:,:])
 		print(probabilities[1,:,:])
-		print(probabilities[7,:,:])
+		print(probabilities[2,:,:])
 		self.board = np.argmax(probabilities, axis=0)
 
 
@@ -280,7 +276,7 @@ class Board:
 
 		x1 = int(blc[0])
 		x2 = int(brc[0])
-		y1 = int(sq_bottom - width*ratio)
+		y1 = max(0, int(sq_bottom - width*ratio))
 		y2 = int(sq_bottom)
 
 		return (x1, x2, y1, y2)

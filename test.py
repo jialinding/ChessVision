@@ -14,25 +14,75 @@ from defs import *
 ########################################################
 
 def test_sift():
-	print("SIFT: predict - actual")
-	clf = joblib.load("classifiers/classifier_sift.pkl")
-	centers = np.load("feature_data/SIFT/centers.npy")
+	print("SIFT:")
+
 	detector = cv2.FeatureDetector_create("SIFT")
 	extractor = cv2.DescriptorExtractor_create("SIFT")
+	centers = np.load("feature_data/SIFT/centers.npy")
+	for piece in pieces:
+		clf = joblib.load("classifiers/classifier_sift_" + piece + ".pkl")
+		ratio = piece_to_ratio[piece]
+		winSize = (64, int(64*ratio))
 
-	for piece_dir in pieces:
+		print(piece)
+
+		# Training set
 		num_correct = float(0)
 		num_images = 0
-		for filename in glob.glob(os.path.join("test_images", piece_dir, "*.jpg")):
-			num_images = num_images + 1
-			image = cv2.imread(filename)
-			features = preprocessing.generateBOWFeatures(image, centers, detector, extractor)
-			prediction = clf.predict(features)
-			if prediction[0] == piece_classes[piece_dir]:
-				num_correct = num_correct + 1
-			print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+		num_true_pos = 0
+		num_true_neg = 0
+		for piece_dir in pieces:
+			num_correct_in_piece = 0
+			for filename in glob.glob(os.path.join("training_images", piece_dir, "*.jpg")):
+				num_images = num_images + 1
+				image = cv2.imread(filename)
+				image = cv2.resize(image, (64, 128))
+				image = image[int(128-64*ratio):,:]
+				features = preprocessing.generateBOWFeatures(image, centers, detector, extractor)
+				prediction = clf.predict(features)
+				if piece == piece_dir and prediction[0] == 1:
+					num_true_pos = num_true_pos + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				elif piece != piece_dir and prediction[0] == 0:
+					num_true_neg = num_true_neg + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				# print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+			print(num_correct_in_piece)
 		if num_images > 0:
-			print("Accuracy for " + piece_dir + ": " + str(num_correct/num_images))
+			print(str(num_true_pos), str(num_true_neg))
+			print(str(num_correct), str(num_images))
+			print("Train accuracy: " + str(num_correct/num_images))
+
+		# Test set
+		num_correct = float(0)
+		num_images = 0
+		num_true_pos = 0
+		num_true_neg = 0
+		for piece_dir in pieces:
+			num_correct_in_piece = 0
+			for filename in glob.glob(os.path.join("test_images", piece_dir, "*.jpg")):
+				num_images = num_images + 1
+				image = cv2.imread(filename)
+				image = cv2.resize(image, (64, 128))
+				image = image[int(128-64*ratio):,:]
+				features = preprocessing.generateBOWFeatures(image, centers, detector, extractor)
+				prediction = clf.predict(features)
+				if piece == piece_dir and prediction[0] == 1:
+					num_true_pos = num_true_pos + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				elif piece != piece_dir and prediction[0] == 0:
+					num_true_neg = num_true_neg + 1
+					num_correct = num_correct + 1
+					num_correct_in_piece = num_correct_in_piece + 1
+				# print(str(prediction) + " - " + str(piece_classes[piece_dir]))
+			print(num_correct_in_piece)
+		if num_images > 0:
+			print(str(num_true_pos), str(num_true_neg))
+			print(str(num_correct), str(num_images))
+			print("Test accuracy: " + str(num_correct/num_images))# 
 
 ########################################################
 ####    											####
@@ -145,6 +195,6 @@ def test_hog_on_test_set():
 	return
 
 if __name__ == "__main__":
-	# test_sift()
+	test_sift()
 	# test_dsift()
-	test_hog()
+	# test_hog()

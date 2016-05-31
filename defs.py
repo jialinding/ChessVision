@@ -1,25 +1,29 @@
-pieces = ["empty", "wp"] # change weights
-piece_weights = {0: 1, 1: 1}
+pieces = ["empty", "pawn", "knight", "queen"] # change weights
+piece_weights = {"empty": {0: 64, 1: 192},
+				 "pawn": {0: 128, 1: 128},
+				 "knight": {0: 32, 1: 224},
+				 "queen": {0: 32, 1: 224}}
 
-aspect_ratios = [1, 1.5, 2]
+# piece_weights = {"empty": {0: 64, 1: 32},
+# 				 "knight": {0: 32, 1: 64}}
+
+# piece_weights = {"empty": {0: 64, 1: 128},
+# 				 "pawn": {0: 128, 1: 64}}
+
+aspect_ratios = [1, 1.25, 1.5, 1.75, 2]
 
 piece_to_ratio = {"empty": 1,
-				  "wp": 1,
-				  "bp": 1}
+				  "pawn": 1,
+				  "knight": 1.25,
+				  "queen": 1.75}
 
 piece_classes = {"empty": 0,
-				 "wp": 1,
-				 "wr": 2,
-				 "wn": 3,
-				 "wb": 4,
-				 "wq": 5,
-				 "wk": 6,
-				 "bp": 7,
-				 "br": 8,
-				 "bn": 9,
-				 "bb": 10,
-				 "bq": 11,
-				 "bk": 12}
+				 "pawn": 1,
+				 "knight": 2,
+				 "bishop": 3,
+				 "rook": 4,
+				 "queen": 5,
+				 "king": 6}
 
 # HOG
 blockSize = (16,16)

@@ -39,9 +39,9 @@ def load_data(desc, piece):
 def train_sift():
 	for piece in pieces:
 		X, Y = load_data("SIFT", piece)
-		clf = svm.SVC(class_weight={0: 1, 1: 2})
+		clf = svm.SVC(class_weight=piece_weights[piece], probability=True)
 		clf.fit(X, Y)
-		joblib.dump(clf, "classifiers/classifier_sift" + piece + ".pkl")
+		joblib.dump(clf, "classifiers/classifier_sift_" + piece + ".pkl")
 
 
 ########################################################
@@ -55,7 +55,7 @@ def train_dsift():
 		X, Y = load_data("DSIFT", piece)
 		clf = svm.SVC(class_weight={0: 1, 1: 2})
 		clf.fit(X, Y)
-		joblib.dump(clf, "classifiers/classifier_dsift" + piece + ".pkl")
+		joblib.dump(clf, "classifiers/classifier_dsift_" + piece + ".pkl")
 
 
 ########################################################
@@ -67,7 +67,7 @@ def train_dsift():
 def train_hog():
 	for piece in pieces:
 		X, Y = load_data_hog(piece)
-		clf = svm.SVC(class_weight=piece_weights, probability=True)
+		clf = svm.SVC(class_weight=piece_weights[piece], probability=True)
 		clf.fit(X, Y)
 		joblib.dump(clf, "classifiers/classifier_hog_" + piece + ".pkl")
 
@@ -109,5 +109,5 @@ def train_nn():
 
 if __name__ == "__main__":
 	train_sift()
-	train_dsift()
-	train_hog()
+	# train_dsift()
+	# train_hog()
