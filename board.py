@@ -5,11 +5,22 @@ from sklearn import svm
 from sklearn.externals import joblib
 import preprocessing
 from defs import *
+import math
 
 aspect_ratios = [1]
 
 boardPts = np.zeros( (3, 4), np.float32)
 numPts = 0
+
+correct_board = np.array([
+		(0, 0, 0, 0, 0, 0, 0, 0),
+		(0, 0, 0, 2, 0, 0, 0, 0),
+		(0, 0, 0, 0, 0, 2, 0, 0),
+		(0, 5, 0, 0, 0, 0, 0, 0),
+		(0, 0, 0, 0, 0, 0, 5, 0),
+		(0, 0, 1, 0, 0, 0, 0, 1),
+		(1, 0, 0, 0, 1, 0, 0, 0),
+		(0, 0, 0, 0, 0, 0, 0, 0)])
 
 def selectPoints(event, x, y, flags, param):
 	global boardPts, numPts
@@ -27,6 +38,7 @@ class Board:
 	def __init__(self, image):
 		self.image = image
 		self.board = np.zeros( (8, 8) )
+		self.probabilities = None
 		self.homography = None
 		self.homography_inv = None
 		self.transformedBoard = None
@@ -142,22 +154,139 @@ class Board:
 	####												####
 	########################################################
 
-	# # Deprecated
-	# def detectPieces(self, descriptor):
-	# 	self.board = np.zeros( (8, 8) )
-	# 	for r in xrange(8):
-	# 		for f in xrange(8):
-	# 			possible_bb = self.getPossibleBoundingBoxes(r, f)
-	# 			for i in xrange(possible_bb.shape[0]):
-	# 				bb = possible_bb[i,:]
-	# 				# if r == 3 and f == 4:
-	# 				# 	print(bb)
-	# 				# 	subim = self.image[bb[2]:bb[3],bb[0]:bb[1]]
-	# 				# 	cv2.imwrite('testimage.jpg', subim)
-	# 				piece_class = self.identifyPiece(bb, descriptor)
-	# 				if piece_class != 0:
-	# 					self.board[7-r, f] = piece_class
-	# 					break
+	def detectPiecesSIFT(self):
+		self.board = np.zeros( (8, 8) )
+
+		sift_detector = cv2.FeatureDetector_create("SIFT")
+		sift_extractor = cv2.DescriptorExtractor_create("SIFT")
+		centers = np.load("feature_data/SIFT/centers.npy")
+
+		probabilities = np.zeros( (7, 8, 8) )
+		for piece in pieces:
+			piece_class = piece_classes[piece]
+			ratio = piece_to_ratio[piece]
+			winSize = (int(64*ratio), 64)
+			classifier = joblib.load("classifiers/classifier_sift_" + piece + ".pkl")
+			for r in xrange(8):
+				for f in xrange(8):
+					bounding_box = self.getBoundingBox(r, f, piece)
+					x1 = bounding_box[0]
+					x2 = bounding_box[1]
+					y1 = bounding_box[2]
+					y2 = bounding_box[3]
+					subimage = self.image[y1:y2, x1:x2]
+					subimage = cv2.resize(subimage, winSize)
+					features = preprocessing.generateBOWFeatures(subimage, centers,
+						sift_detector, sift_extractor)
+					prob = classifier.predict_proba(features)
+					probabilities[piece_class, 7-r, f] = prob[0,1]
+
+		print(probabilities[0,:,:])
+		print(probabilities[1,:,:])
+		print(probabilities[2,:,:])
+		self.board = np.argmax(probabilities, axis=0)
+		self.probabilities = probabilities
+
+		self.cross_entropy()
+		self.detection_error()
+		self.classification_error()
+
+
+	def detectPiecesHOG(self):
+		self.board = np.zeros( (8, 8) )
+
+		probabilities = np.zeros( (7, 8, 8) )
+		for piece in pieces:
+			piece_class = piece_classes[piece]
+			ratio = piece_to_ratio[piece]
+			winSize = (int(64*ratio), 64)
+			hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,
+				winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+			classifier = joblib.load("classifiers/classifier_hog_" + piece + ".pkl")
+			for r in xrange(8):
+				for f in xrange(8):
+					bounding_box = self.getBoundingBox(r, f, piece)
+					x1 = bounding_box[0]
+					x2 = bounding_box[1]
+					y1 = bounding_box[2]
+					y2 = bounding_box[3]
+					subimage = self.image[y1:y2, x1:x2]
+					subimage = cv2.resize(subimage, winSize)
+					features = hog.compute(subimage).transpose()
+					prob = classifier.predict_proba(features)
+					probabilities[piece_class, 7-r, f] = prob[0,1]
+
+		print(probabilities[0,:,:])
+		print(probabilities[1,:,:])
+		print(probabilities[2,:,:])
+		self.board = np.argmax(probabilities, axis=0)
+		self.probabilities = probabilities
+
+		self.cross_entropy()
+		self.detection_error()
+		self.classification_error()
+
+
+	def getBoundingBox(self, r, f, piece):
+		corner_pts = np.ones( (3, 4) )
+		corner_pts[1, 0] = 640 - (r+1)*80
+		corner_pts[0, 0] = f*80
+		corner_pts[1, 1] = 640 - (r+1)*80
+		corner_pts[0, 1] = (f+1)*80
+		corner_pts[1, 2] = 640 - r*80
+		corner_pts[0, 2] = (f+1)*80
+		corner_pts[1, 3] = 640 - r*80
+		corner_pts[0, 3] = f*80
+
+		pts = self.homography_inv.dot(corner_pts)
+		tlc = pts[0:2,0]/pts[2,0]
+		trc = pts[0:2,1]/pts[2,1]
+		brc = pts[0:2,2]/pts[2,2]
+		blc = pts[0:2,3]/pts[2,3]
+
+		width = brc[0] - blc[0]
+		sq_bottom = min(brc[1], blc[1])
+		ratio = piece_to_ratio[piece]
+
+		x1 = int(blc[0])
+		x2 = int(brc[0])
+		y1 = max(0, int(sq_bottom - width*ratio))
+		y2 = int(sq_bottom)
+
+		return (x1, x2, y1, y2)
+
+
+	def detectPiecesNN(self):
+		self.board = np.zeros( (8, 8) )
+
+		probabilities = np.zeros( (7, 8, 8) )
+		for piece in pieces:
+			piece_class = piece_classes[piece]
+			ratio = piece_to_ratio[piece]
+			winSize = (int(64*ratio), 64)
+			classifier = joblib.load("classifiers/classifier_nn_" + piece + ".pkl")
+			for r in xrange(8):
+				for f in xrange(8):
+					bounding_box = self.getBoundingBox(r, f, piece)
+					x1 = bounding_box[0]
+					x2 = bounding_box[1]
+					y1 = bounding_box[2]
+					y2 = bounding_box[3]
+					subimage = self.image[y1:y2, x1:x2]
+					subimage = cv2.resize(subimage, winSize)
+					features = np.reshape(subimage, (1, np.product(subimage.shape)))
+					prob = classifier.predict_proba(features)
+					probabilities[piece_class, 7-r, f] = prob[0,1]
+
+		print(probabilities[0,:,:])
+		print(probabilities[1,:,:])
+		print(probabilities[2,:,:])
+		self.board = np.argmax(probabilities, axis=0)
+		self.probabilities = probabilities
+
+		self.cross_entropy()
+		self.detection_error()
+		self.classification_error()
 
 
 	# # Deprecated
@@ -222,64 +351,44 @@ class Board:
 	# 		features = hog.compute(subimage)
 	# 		return self.classifier_hog_1.predict(features.transpose())
 
+	########################################################
+	####    											####
+	####       ERROR									####
+	####												####
+	########################################################
 
-	def detectPiecesHOG(self):
-		self.board = np.zeros( (8, 8) )
-
-		probabilities = np.zeros( (7, 8, 8) )
-		for piece in pieces:
-			piece_class = piece_classes[piece]
-			ratio = piece_to_ratio[piece]
-			winSize = (int(64*ratio), 64)
-			hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,
-				winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
-			classifier = joblib.load("classifiers/classifier_hog_" + piece + ".pkl")
-			for r in xrange(8):
-				for f in xrange(8):
-					bounding_box = self.getBoundingBox(r, f, piece)
-					x1 = bounding_box[0]
-					x2 = bounding_box[1]
-					y1 = bounding_box[2]
-					y2 = bounding_box[3]
-					subimage = self.image[y1:y2, x1:x2]
-					subimage = cv2.resize(subimage, winSize)
-					features = hog.compute(subimage).transpose()
-					prob = classifier.predict_proba(features)
-					probabilities[piece_class, 7-r, f] = prob[0,1]
-
-		print(probabilities[0,:,:])
-		print(probabilities[1,:,:])
-		print(probabilities[2,:,:])
-		self.board = np.argmax(probabilities, axis=0)
+	def cross_entropy(self):
+		entropy = float(0)
+		for r in xrange(8):
+			for f in xrange(8):
+				correct_prob = self.probabilities[correct_board[r, f], r, f]
+				entropy = entropy - math.log(correct_prob)
+		entropy = entropy / 64
+		print("Entropy: " + str(entropy))
 
 
-	def getBoundingBox(self, r, f, piece):
-		corner_pts = np.ones( (3, 4) )
-		corner_pts[1, 0] = 640 - (r+1)*80
-		corner_pts[0, 0] = f*80
-		corner_pts[1, 1] = 640 - (r+1)*80
-		corner_pts[0, 1] = (f+1)*80
-		corner_pts[1, 2] = 640 - r*80
-		corner_pts[0, 2] = (f+1)*80
-		corner_pts[1, 3] = 640 - r*80
-		corner_pts[0, 3] = f*80
+	def detection_error(self):
+		num_error = float(0)
+		for r in xrange(8):
+			for f in xrange(8):
+				if self.board[r, f] > 0 and correct_board[r, f] == 0:
+					num_error = num_error + 1
+				if self.board[r, f] == 0 and correct_board[r, f] > 0:
+					num_error = num_error + 1
+		detection_error = num_error/64
+		detection_accuracy = 1-detection_error
+		print("Detection accuracy: " + str(detection_accuracy))
 
-		pts = self.homography_inv.dot(corner_pts)
-		tlc = pts[0:2,0]/pts[2,0]
-		trc = pts[0:2,1]/pts[2,1]
-		brc = pts[0:2,2]/pts[2,2]
-		blc = pts[0:2,3]/pts[2,3]
 
-		width = brc[0] - blc[0]
-		sq_bottom = min(brc[1], blc[1])
-		ratio = piece_to_ratio[piece]
-
-		x1 = int(blc[0])
-		x2 = int(brc[0])
-		y1 = max(0, int(sq_bottom - width*ratio))
-		y2 = int(sq_bottom)
-
-		return (x1, x2, y1, y2)
+	def classification_error(self):
+		num_error = float(0)
+		for r in xrange(8):
+			for f in xrange(8):
+				if self.board[r, f] != correct_board[r, f]:
+					num_error = num_error + 1
+		classification_error = num_error/64
+		classification_accuracy = 1-classification_error
+		print("Classification accuracy: " + str(classification_accuracy))
 
 
 	########################################################

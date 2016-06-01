@@ -1,6 +1,8 @@
 import cv2
 import argparse
 from board import Board
+import plots
+from defs import *
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-i", "--image", required=True, help="Path to the image")
@@ -13,14 +15,15 @@ board = Board(image)
 board.constructFromImage()
 board.displayHomographyMatrix()
 board.displayTransformedImage()
-# board.detectPieces("SIFT")
-# board.displayBoard()
-# board.detectPieces("DSIFT")
-# board.displayBoard()
-# board.detectPieces("HOG")
-# board.displayBoard()
+
+# board.detectPiecesSIFT()
 board.detectPiecesHOG()
+# board.detectPiecesNN()
 board.displayBoard()
+
+# plots.heatmap(board.probabilities)
+# for piece in pieces:
+# 	plots.heatmap(board.probabilities, piece)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()

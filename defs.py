@@ -4,6 +4,12 @@ piece_weights = {"empty": {0: 64, 1: 192},
 				 "knight": {0: 32, 1: 224},
 				 "queen": {0: 32, 1: 224}}
 
+# Normalize positive and negative training set for neural nets
+nn_repeats = {"empty": 3,
+			  "pawn": 1,
+			  "knight": 7,
+			  "queen": 7}
+
 # piece_weights = {"empty": {0: 64, 1: 32},
 # 				 "knight": {0: 32, 1: 64}}
 
