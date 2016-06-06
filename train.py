@@ -143,7 +143,7 @@ def load_data_nn(piece):
 
 
 if __name__ == "__main__":
-	train_sift()
+	# train_sift()
 	# train_dsift()
 	# train_hog()
-	# train_nn()
+	train_nn()

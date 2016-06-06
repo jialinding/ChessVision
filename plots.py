@@ -67,7 +67,7 @@ def heatmap(probabilities, piece="all"):
 		)
 
 		fig = go.Figure(data=data, layout=layout)
-		plot_url = py.plot(fig, filename="heatmap-all")
+		plot_url = py.plot(fig, filename="heatmap-all-1")
 	else:
 		piece_class = piece_classes[piece]
 		z = probabilities[piece_class,:,:]
@@ -105,4 +105,4 @@ def heatmap(probabilities, piece="all"):
 
 		z_text = np.around(z, decimals=3)
 		fig = FF.create_annotated_heatmap(z, annotation_text=z_text)
-		plot_url = py.plot(fig, filename="heatmap-" + piece)
+		plot_url = py.plot(fig, filename="heatmap-" + piece + "-1")

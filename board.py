@@ -12,16 +12,6 @@ aspect_ratios = [1]
 boardPts = np.zeros( (3, 4), np.float32)
 numPts = 0
 
-correct_board = np.array([
-		(0, 0, 0, 0, 0, 0, 0, 0),
-		(0, 0, 0, 2, 0, 0, 0, 0),
-		(0, 0, 0, 0, 0, 2, 0, 0),
-		(0, 5, 0, 0, 0, 0, 0, 0),
-		(0, 0, 0, 0, 0, 0, 5, 0),
-		(0, 0, 1, 0, 0, 0, 0, 1),
-		(1, 0, 0, 0, 1, 0, 0, 0),
-		(0, 0, 0, 0, 0, 0, 0, 0)])
-
 def selectPoints(event, x, y, flags, param):
 	global boardPts, numPts
 
@@ -75,6 +65,14 @@ class Board:
 		
 		# self.computeHomography(boardPts, imagePts)
 		self.computeHomography2(np.transpose(boardPts), np.transpose(imagePts))
+
+
+	def constructFromImageWithPoints(self, pts):
+		imagePts = np.array([(0, 640, 640, 0),
+					(0, 0, 640, 640)],
+					np.float32)
+		
+		self.computeHomography2(np.transpose(pts), np.transpose(imagePts))
 
 
 	def constructFromImageTest(self):
@@ -134,6 +132,7 @@ class Board:
 				for j in xrange(7):
 					cv2.circle(clone, ((i+1)*80, (j+1)*80), 5, (255, 0, 0), -1)
 		cv2.imshow("Transformed Image", clone)
+		cv2.imwrite("presentation.jpg", clone)
 
 
 	def displayHomographyMatrix(self):
@@ -154,7 +153,7 @@ class Board:
 	####												####
 	########################################################
 
-	def detectPiecesSIFT(self):
+	def detectPiecesSIFT(self, correct_board):
 		self.board = np.zeros( (8, 8) )
 
 		sift_detector = cv2.FeatureDetector_create("SIFT")
@@ -181,18 +180,20 @@ class Board:
 					prob = classifier.predict_proba(features)
 					probabilities[piece_class, 7-r, f] = prob[0,1]
 
-		print(probabilities[0,:,:])
-		print(probabilities[1,:,:])
-		print(probabilities[2,:,:])
+		# print(probabilities[0,:,:])
+		# print(probabilities[1,:,:])
+		# print(probabilities[2,:,:])
 		self.board = np.argmax(probabilities, axis=0)
 		self.probabilities = probabilities
 
-		self.cross_entropy()
-		self.detection_error()
-		self.classification_error()
+		cross_entropy = self.cross_entropy(correct_board)
+		detection_accuracy = self.detection_error(correct_board)
+		classification_accuracy = self.classification_error(correct_board)
+
+		return (cross_entropy, detection_accuracy, classification_accuracy)
 
 
-	def detectPiecesHOG(self):
+	def detectPiecesHOG(self, correct_board):
 		self.board = np.zeros( (8, 8) )
 
 		probabilities = np.zeros( (7, 8, 8) )
@@ -216,15 +217,17 @@ class Board:
 					prob = classifier.predict_proba(features)
 					probabilities[piece_class, 7-r, f] = prob[0,1]
 
-		print(probabilities[0,:,:])
-		print(probabilities[1,:,:])
-		print(probabilities[2,:,:])
+		# print(probabilities[0,:,:])
+		# print(probabilities[1,:,:])
+		# print(probabilities[2,:,:])
 		self.board = np.argmax(probabilities, axis=0)
 		self.probabilities = probabilities
 
-		self.cross_entropy()
-		self.detection_error()
-		self.classification_error()
+		cross_entropy = self.cross_entropy(correct_board)
+		detection_accuracy = self.detection_error(correct_board)
+		classification_accuracy = self.classification_error(correct_board)
+
+		return (cross_entropy, detection_accuracy, classification_accuracy)
 
 
 	def getBoundingBox(self, r, f, piece):
@@ -278,9 +281,9 @@ class Board:
 					prob = classifier.predict_proba(features)
 					probabilities[piece_class, 7-r, f] = prob[0,1]
 
-		print(probabilities[0,:,:])
-		print(probabilities[1,:,:])
-		print(probabilities[2,:,:])
+		# print(probabilities[0,:,:])
+		# print(probabilities[1,:,:])
+		# print(probabilities[2,:,:])
 		self.board = np.argmax(probabilities, axis=0)
 		self.probabilities = probabilities
 
@@ -357,17 +360,18 @@ class Board:
 	####												####
 	########################################################
 
-	def cross_entropy(self):
+	def cross_entropy(self, correct_board):
 		entropy = float(0)
 		for r in xrange(8):
 			for f in xrange(8):
 				correct_prob = self.probabilities[correct_board[r, f], r, f]
 				entropy = entropy - math.log(correct_prob)
 		entropy = entropy / 64
-		print("Entropy: " + str(entropy))
+		#print("Entropy: " + str(entropy))
+		return entropy
 
 
-	def detection_error(self):
+	def detection_error(self, correct_board):
 		num_error = float(0)
 		for r in xrange(8):
 			for f in xrange(8):
@@ -377,10 +381,11 @@ class Board:
 					num_error = num_error + 1
 		detection_error = num_error/64
 		detection_accuracy = 1-detection_error
-		print("Detection accuracy: " + str(detection_accuracy))
+		# print("Detection accuracy: " + str(detection_accuracy))
+		return detection_accuracy
 
 
-	def classification_error(self):
+	def classification_error(self, correct_board):
 		num_error = float(0)
 		for r in xrange(8):
 			for f in xrange(8):
@@ -388,7 +393,8 @@ class Board:
 					num_error = num_error + 1
 		classification_error = num_error/64
 		classification_accuracy = 1-classification_error
-		print("Classification accuracy: " + str(classification_accuracy))
+		# print("Classification accuracy: " + str(classification_accuracy))
+		return classification_accuracy
 
 
 	########################################################
