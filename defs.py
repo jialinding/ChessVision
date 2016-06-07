@@ -4,10 +4,10 @@ pieces = ["empty", "pawn", "knight", "bishop", "rook", "queen", "king"] # change
 piece_weights = {"empty": {0: 64, 1: 272},
 				 "pawn": {0: 128, 1: 208},
 				 "knight": {0: 32, 1: 304},
-				 "bishop": {0: 32, 1:304},
-				 "rook": {0: 32, 1:304},
-				 "queen": {0: 32, 1: 304},
-				 "king": {0: 16, 1:320}}
+				 "bishop": {0: 32, 1: 304}, # 304
+				 "rook": {0: 32, 1: 304}, # 305
+				 "queen": {0: 32, 1: 304}, # 306
+				 "king": {0: 16, 1: 320}} # 320
 
 # Normalize positive and negative training set for neural nets
 nn_repeats = {"empty": 4,
@@ -45,8 +45,8 @@ piece_classes = {"empty": 0,
 
 # HOG
 blockSize = (16,16)
-blockStride = (8,8)
-cellSize = (8,8)
+blockStride = (4,4)
+cellSize = (4,4)
 nbins = 9
 derivAperture = 1
 winSigma = 4.

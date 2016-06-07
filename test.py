@@ -264,7 +264,7 @@ def test_nn():
 
 
 if __name__ == "__main__":
-	test_sift()
+	# test_sift()
 	# test_dsift()
-	# test_hog()
+	test_hog()
 	# test_nn()

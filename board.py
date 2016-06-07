@@ -226,8 +226,9 @@ class Board:
 		cross_entropy = self.cross_entropy(correct_board)
 		detection_accuracy = self.detection_error(correct_board)
 		classification_accuracy = self.classification_error(correct_board)
+		confusion_matrix = self.confusion_matrix(correct_board)
 
-		return (cross_entropy, detection_accuracy, classification_accuracy)
+		return (cross_entropy, detection_accuracy, classification_accuracy, confusion_matrix)
 
 
 	def getBoundingBox(self, r, f, piece):
@@ -395,6 +396,14 @@ class Board:
 		classification_accuracy = 1-classification_error
 		# print("Classification accuracy: " + str(classification_accuracy))
 		return classification_accuracy
+
+
+	def confusion_matrix(self, correct_board):
+		confusion_matrix = np.zeros( (7, 7) )
+		for r in xrange(8):
+			for f in xrange(8):
+				confusion_matrix[correct_board[r,f], self.board[r,f]] += 1
+		return confusion_matrix
 
 
 	########################################################

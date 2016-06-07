@@ -130,5 +130,5 @@ def preprocessing_hog():
 
 if __name__ == "__main__":
 	preprocessing_sift()
-	preprocessing_dsift()
+	# preprocessing_dsift()
 	preprocessing_hog()

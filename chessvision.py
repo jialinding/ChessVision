@@ -5,6 +5,7 @@ from defs import *
 import numpy as np
 
 test_results = np.zeros( (6, 6) )
+confusion_matrix = np.zeros( (7, 7) )
 
 for i, boards in enumerate(sets):
 	num_pieces = (i+1)*5
@@ -28,10 +29,11 @@ for i, boards in enumerate(sets):
 		averages[1] += ca_sift
 		averages[2] += da_sift
 
-		(ce_hog, da_hog, ca_hog) = board.detectPiecesHOG(correct_board)
+		(ce_hog, da_hog, ca_hog, confusion) = board.detectPiecesHOG(correct_board)
 		averages[3] += ce_hog
 		averages[4] += ca_hog
 		averages[5] += da_hog
+		confusion_matrix = np.add(confusion_matrix, confusion)
 
 	averages = averages/5
 
@@ -41,6 +43,7 @@ for i, boards in enumerate(sets):
 np.savetxt('test_results.csv', test_results, delimiter=",")
 total_averages = np.mean(test_results, axis=1)
 np.savetxt('total_averages.csv', total_averages, delimiter=",")
+np.savetxt('confusion_matrix.csv', confusion_matrix, delimiter=",")
 
 
 # plots.heatmap(board.probabilities)
